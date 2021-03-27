@@ -1,7 +1,7 @@
 import {
   Scene,
   PerspectiveCamera,
-  WebGLRenderer,
+  WebGL1Renderer,
   DataTexture,
   RGBFormat,
   FloatType,
@@ -91,7 +91,7 @@ class App {
   }
 
   initRenderer() {
-    this.renderer = new WebGLRenderer({
+    this.renderer = new WebGL1Renderer({
       canvas: document.getElementById("js-canvas"),
       antialias: true,
     });
