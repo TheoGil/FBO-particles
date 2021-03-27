@@ -9,6 +9,7 @@ import {
   BufferGeometry,
   BufferAttribute,
   Points,
+  PlaneGeometry,
 } from "three";
 
 /**
@@ -23,71 +24,88 @@ import {
  */
 export default class FBO {
   constructor({ width, height, renderer, simulationMaterial, renderMaterial }) {
-    /**
-     * CHECK SUPPORT
-     */
+    this.checkSupport(renderer);
+    this.initScene();
+    this.initCamera();
+    this.initRenderTarget(width, height);
+    this.initPlane(simulationMaterial);
+    this.initParticles(width, height, renderMaterial);
+  }
+
+  initScene() {
+    this.scene = new Scene();
+  }
+
+  initCamera() {
+    this.camera = new OrthographicCamera(-1, 1, 1, -1, 1 / Math.pow(2, 53), 1);
+  }
+
+  checkSupport(renderer) {
     const gl = renderer.getContext();
 
-    // Maximise portability by enabling extension explicitly
-    gl.getExtension("WEBGL_color_buffer_float");
-
-    //1 we need FLOAT Textures to store positions
+    // we need FLOAT Textures to store positions
     //https://github.com/KhronosGroup/WebGL/blob/master/sdk/tests/conformance/extensions/oes-texture-float.html
     if (!gl.getExtension("OES_texture_float")) {
       throw new Error("float textures not supported");
     }
 
-    //2 we need to access textures from within the vertex shader
+    // we need to access textures from within the vertex shader
     //https://github.com/KhronosGroup/WebGL/blob/90ceaac0c4546b1aad634a6a5c4d2dfae9f4d124/conformance-suites/1.0.0/extra/webgl-info.html
     if (gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) == 0) {
       throw new Error("vertex shader cannot read textures");
     }
 
-    /**
-     * FBO SCENE SETUP
-     */
-    this.scene = new Scene();
-    this.camera = new OrthographicCamera(-1, 1, 1, -1, 1 / Math.pow(2, 53), 1);
+    // Maximise portability by enabling extension explicitly
+    gl.getExtension("WEBGL_color_buffer_float");
+  }
 
-    /**
-     * FBO TEXTURE SETUP
-     * The color of every of its pixel will be set by the "simulation fragment shader".
-     * That texture will be passed as a uniform to the "render shaders"
-     */
+  /**
+   * FBO TEXTURE SETUP
+   * The color of every of its pixel will be set by the "simulation fragment shader".
+   * That texture will be passed as a uniform to the "render shaders"
+   */
+  initRenderTarget(width, height) {
     this.renderTarget = new WebGLRenderTarget(width, height, {
       format: RGBAFormat, // Allow to store up to 4 data per pixel (on per channel)
       minFilter: NearestFilter, // important as we want to sample square pixels
       magFilter: NearestFilter, // important as we want to sample square pixels
       type: FloatType, // important as we need precise coordinates (not ints)
     });
+  }
 
-    //5 the simulation:
-    //create a bi-unit quadrilateral and uses the simulation material to update the Float Texture
-    this.planeGeometry = new BufferGeometry();
-    // prettier-ignore
-    this.planeGeometry.setAttribute(
-      "position",
-      new BufferAttribute(new Float32Array([
-        -1, -1, 0,
-         1, -1, 0,
-         1,  1, 0,
-        -1, -1, 0,
-         1,  1, 0,
-        -1,  1, 0
-    ]), 3)
-    );
-    this.planeGeometry.setAttribute(
-      "uv",
-      new BufferAttribute(
-        new Float32Array([0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0]),
-        2
-      )
-    );
+  initPlane(simulationMaterial) {
+    // //create a bi-unit quadrilateral and uses the simulation material to update the Float Texture
+    // const geometry = new BufferGeometry();
 
-    this.scene.add(new Mesh(this.planeGeometry, simulationMaterial));
+    // // prettier-ignore
+    // geometry.setAttribute(
+    //   "position",
+    //   new BufferAttribute(new Float32Array([
+    //     -1, -1, 0,
+    //      1, -1, 0,
+    //      1,  1, 0,
+    //     -1, -1, 0,
+    //      1,  1, 0,
+    //     -1,  1, 0
+    // ]), 3));
 
-    //6 the particles:
-    //create a vertex buffer of size width * height with normalized coordinates
+    // geometry.setAttribute(
+    //   "uv",
+    //   new BufferAttribute(
+    //     new Float32Array([0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0]),
+    //     2
+    //   )
+    // );
+
+    // Use 2 for the width and height because we want the vertices to range from -1 to 1
+    const geometry = new PlaneGeometry(2, 2, 1, 1);
+
+    this.plane = new Mesh(geometry, simulationMaterial);
+
+    this.scene.add(this.plane);
+  }
+
+  initParticles(width, height, renderMaterial) {
     const l = width * height;
     const vertices = new Float32Array(l * 3);
     for (var i = 0; i < l; i++) {
@@ -96,11 +114,9 @@ export default class FBO {
       vertices[i3 + 1] = i / width / height;
     }
 
-    //create the particles geometry
     const geometry = new BufferGeometry();
     geometry.setAttribute("position", new BufferAttribute(vertices, 3));
 
-    //the rendermaterial is used to render the particles
     this.particles = new Points(geometry, renderMaterial);
   }
 

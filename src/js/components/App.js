@@ -86,7 +86,7 @@ class App {
       0.1,
       1000
     );
-    this.camera.position.z = 100;
+    this.camera.position.z = 300;
     new OrbitControls(this.camera, this.renderer.domElement);
   }
 
