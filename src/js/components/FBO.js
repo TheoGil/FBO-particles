@@ -28,6 +28,9 @@ export default class FBO {
      */
     const gl = renderer.getContext();
 
+    // Maximise portability by enabling extension explicitly
+    gl.getExtension("WEBGL_color_buffer_float");
+
     //1 we need FLOAT Textures to store positions
     //https://github.com/KhronosGroup/WebGL/blob/master/sdk/tests/conformance/extensions/oes-texture-float.html
     if (!gl.getExtension("OES_texture_float")) {
