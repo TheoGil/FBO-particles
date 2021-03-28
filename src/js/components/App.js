@@ -43,7 +43,6 @@ class App {
     img.onload = (e) => {
       this.initParticles(e.target);
     };
-    img.crossOrigin = "anonymous";
     img.src = imgSrc;
   }
 
@@ -54,7 +53,7 @@ class App {
     const width = img.width;
     const height = img.height;
 
-    const elevation = 64; // Arbitrary value
+    const elevation = 20; // Arbitrary value
     const data = getImage(img, width, height, elevation);
     const positions = new DataTexture(
       data,
@@ -63,7 +62,6 @@ class App {
       RGBFormat,
       FloatType
     );
-    positions.needsUpdate = true;
 
     //simulation shader used to update the particles' positions
     this.simulationMaterial = new ShaderMaterial({
@@ -81,6 +79,7 @@ class App {
       },
       vertexShader: renderVertex,
       fragmentShader: renderFragment,
+      transparent: true,
     });
 
     //init the FBO
@@ -108,6 +107,7 @@ class App {
       1000
     );
     this.camera.position.z = 300;
+    this.camera.position.y = 150;
     new OrbitControls(this.camera, this.renderer.domElement);
   }
 
@@ -133,6 +133,8 @@ class App {
   render() {
     requestAnimationFrame(this.render);
     this.FBO.update(this.renderer);
+
+    this.FBO.particles.rotation.y += 0.0025;
 
     this.renderer.setRenderTarget(null);
     this.renderer.render(this.scene, this.camera);
