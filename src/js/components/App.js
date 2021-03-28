@@ -13,6 +13,8 @@ import simulationVertex from "../../shaders/FBO/simulation/vertex.glsl";
 import simulationFragment from "../../shaders/FBO/simulation/fragment.glsl";
 import renderVertex from "../../shaders/FBO/render/vertex.glsl";
 import renderFragment from "../../shaders/FBO/render/fragment.glsl";
+import imgSrc from "../../img/noise.jpg";
+import getImage from "../utils/getImage";
 
 function getRandomData(width, height, size) {
   var len = width * height * 3;
@@ -31,16 +33,36 @@ class App {
     this.initScene();
     this.initRenderer();
     this.initCamera();
+    this.setRendererSize();
 
+    this.loadImage();
+  }
+
+  loadImage() {
+    const img = new Image();
+    img.onload = (e) => {
+      this.initParticles(e.target);
+    };
+    img.crossOrigin = "anonymous";
+    img.src = imgSrc;
+  }
+
+  initParticles(img) {
     // The width and the height of the FBO will determine the amount
-    // of particules. Ex: A 256x256 FBO will handle 65536 particles
-    const width = 256;
-    const height = 256;
+    // of particules. Ex: A 256x256 FBO will handle 65536 particles.
+    // In this exemple, we want 1 particle per pixel of the source image.
+    const width = img.width;
+    const height = img.height;
 
-    //populate a Float32Array of random positions
-    const data = getRandomData(width, height, 256);
-    //convertes it to a FloatTexture
-    var positions = new DataTexture(data, width, height, RGBFormat, FloatType);
+    const elevation = 64; // Arbitrary value
+    const data = getImage(img, width, height, elevation);
+    const positions = new DataTexture(
+      data,
+      width,
+      height,
+      RGBFormat,
+      FloatType
+    );
     positions.needsUpdate = true;
 
     //simulation shader used to update the particles' positions
@@ -71,7 +93,6 @@ class App {
     });
     this.scene.add(this.FBO.particles);
 
-    this.setRendererSize();
     this.render();
   }
 
